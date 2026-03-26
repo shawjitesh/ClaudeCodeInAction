@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Markdown Editor</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: #f6f8fa;
+      display: flex;
+      justify-content: center;
+      padding: 40px 16px;
+    }
+
+    .editor-container {
+      width: 100%;
+      max-width: 740px;
+    }
+
+    .tab-bar {
+      display: flex;
+      gap: 4px;
+      background: #f6f8fa;
+      border: 1px solid #d0d7de;
+      border-bottom: none;
+      border-radius: 6px 6px 0 0;
+      padding: 8px 8px 0;
+    }
+
+    .tab-btn {
+      padding: 6px 16px;
+      border: 1px solid transparent;
+      border-bottom: none;
+      border-radius: 6px 6px 0 0;
+      background: transparent;
+      font-size: 14px;
+      cursor: pointer;
+      color: #57606a;
+      transition: background 0.1s, color 0.1s;
+      position: relative;
+      bottom: -1px;
+    }
+
+    .tab-btn:hover {
+      background: #eaeef2;
+      color: #24292f;
+    }
+
+    .tab-btn.active {
+      background: #ffffff;
+      border-color: #d0d7de;
+      color: #24292f;
+      font-weight: 500;
+    }
+
+    .editor-body {
+      border: 1px solid #d0d7de;
+      border-radius: 0 0 6px 6px;
+      background: #ffffff;
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    #code-panel textarea {
+      width: 100%;
+      min-height: 200px;
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      border: none;
+      outline: none;
+      resize: vertical;
+      color: #24292f;
+    }
+
+    #preview-panel {
+      padding: 16px;
+      min-height: 200px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #24292f;
+    }
+
+    #preview-panel h1, #preview-panel h2, #preview-panel h3 {
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    #preview-panel p {
+      margin-bottom: 8px;
+    }
+
+    #preview-panel code {
+      background: #f6f8fa;
+      border: 1px solid #d0d7de;
+      border-radius: 4px;
+      padding: 2px 5px;
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 85%;
+    }
+
+    #preview-panel pre {
+      background: #f6f8fa;
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      padding: 12px;
+      overflow-x: auto;
+      margin-bottom: 8px;
+    }
+
+    #preview-panel pre code {
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: 13px;
+    }
+
+    #preview-panel ul, #preview-panel ol {
+      padding-left: 24px;
+      margin-bottom: 8px;
+    }
+
+    #preview-panel strong {
+      font-weight: 600;
+    }
+
+    #preview-panel em {
+      font-style: italic;
+    }
+
+    .empty-preview {
+      color: #57606a;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <div class="editor-container">
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="code">Code</button>
+      <button class="tab-btn" data-tab="preview">Preview</button>
+    </div>
+    <div class="editor-body">
+      <div id="code-panel" class="tab-panel active">
+        <textarea id="markdown-input" placeholder="Write markdown here...">## Hello, World!
+
+This is a **markdown** editor with working toggle buttons.
+
+- Click **Preview** to see the rendered output
+- Click **Code** to return to editing
+
+### Code Example
+
+\`\`\`js
+function greet(name) {
+  return \`Hello, \${name}!\`;
+}
+\`\`\`
+</textarea>
+      </div>
+      <div id="preview-panel" class="tab-panel">
+        <!-- rendered markdown goes here -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tabs = document.querySelectorAll('.tab-btn');
+    const codePanel = document.getElementById('code-panel');
+    const previewPanel = document.getElementById('preview-panel');
+    const markdownInput = document.getElementById('markdown-input');
+
+    function renderMarkdown(text) {
+      if (!text.trim()) {
+        return '<p class="empty-preview">Nothing to preview.</p>';
+      }
+
+      let html = text
+        // Escape HTML to prevent XSS
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+      // Fenced code blocks
+      html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
+        return `<pre><code>${code.trimEnd()}</code></pre>`;
+      });
+
+      // Inline code
+      html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+      // Headings
+      html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+      html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+      html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+      // Bold and italic
+      html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+      html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+      // Unordered list items
+      html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+      html = html.replace(/(<li>[\s\S]*?<\/li>)/g, (match) => {
+        if (!match.startsWith('<ul>')) return `<ul>${match}</ul>`;
+        return match;
+      });
+
+      // Paragraphs (lines not already wrapped in a block tag)
+      html = html.split('\n').map(line => {
+        if (!line.trim()) return '';
+        if (/^<(h[1-6]|ul|ol|li|pre|blockquote)/.test(line)) return line;
+        return `<p>${line}</p>`;
+      }).join('\n');
+
+      return html;
+    }
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const target = tab.dataset.tab;
+
+        // Update active tab button
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        // Show / hide panels
+        if (target === 'preview') {
+          codePanel.classList.remove('active');
+          previewPanel.classList.add('active');
+          previewPanel.innerHTML = renderMarkdown(markdownInput.value);
+        } else {
+          previewPanel.classList.remove('active');
+          codePanel.classList.add('active');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
